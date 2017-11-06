@@ -1,8 +1,13 @@
-var THREE = require('./public/js/three.min');
+var THREE = require('three');
 class Body {
 
-	constructor ({mass = 0.0, radius = 0.0, position = THREE.Vector3(), 
-		velocity = THREE.Vector3(), acceleration = THREE.Vector3()}) {
+	constructor ({
+        mass = 0.0, 
+        radius = 0.0, 
+        position = new THREE.Vector3(), 
+        velocity = new THREE.Vector3(), 
+        acceleration = new THREE.Vector3()
+    } = {}) {
         this.mass = mass;
         this.radius = radius;
         this.position = position;

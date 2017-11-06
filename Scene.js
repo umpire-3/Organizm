@@ -1,21 +1,29 @@
-var THREE = require('./public/js/three.min');
+var THREE = require('three');
 var Body = require('./Body').Body;
+
+
+const cellSize = 200.0,
+    edge = 0.1,
+    gravity = new THREE.Vector3(0, -98, 0);
 
 class Scene {
     constructor() {
         this.bodies = [];
-        this.gravity = new THREE.Vector3(0, -98, 0);
-        this.edge = 0.1;
-        this.cellSize = 200.0;
-        for (var i = 0; i < 50; i++) {
-            var r = Math.random() * (30);
-            var m = r * r * r * Math.PI * (4.0 / 3.0);
-            var p = new THREE.Vector3(Math.random() * (350 - 200) + 200,
-                Math.random() * (350 - 200) + 200, Math.random() * (350 - 200) + 200);
-            var v = new THREE.Vector3(Math.random() * (100 - 50) + 50,
-                Math.random() * (100 - 50) + 50, Math.random() * (100 - 50) + 50);
-            v.setLength(Math.random() * (200) / 4.0);
-            a = new THREE.Vector3();
+        for (let i = 0; i < 50; i++) {
+            let r = parseInt(Math.random() * 29) + 1;
+            let m = Math.pow(r,3) * Math.PI * (4.0 / 3.0);
+            let p = new THREE.Vector3(
+                parseInt(Math.random() * 350) - 200,
+                parseInt(Math.random() * 350) - 200,
+                parseInt(Math.random() * 350) - 200
+            );
+            let v = new THREE.Vector3(
+                parseInt(Math.random() * 100) - 50,
+                parseInt(Math.random() * 100) - 50,
+                parseInt(Math.random() * 100) - 50
+            );
+            v.setLength(parseInt(Math.random() * 200) / 4.0);
+            let a = new THREE.Vector3();
             this.bodies.push(new Body({
                 mass: m,
                 radius: r,
@@ -27,7 +35,7 @@ class Scene {
     }
 
     setGravity(gravity) {
-        for (var body of this.bodies) {
+        for (let body of this.bodies) {
             body.setAcceleration(gravity);
         }
     }
@@ -65,42 +73,64 @@ class Scene {
     	}
     }
 
+    p1 -= p * (|v1| / (|v1| + |v2|))
+    p2 += p * (|v2| / (|v1| + |v2|))
+
+    Axis.normalize();
+
+    Vector u1 = Axis.multiplied(Axis.dot(b1.velocity));
+    Axis.negate();
+    Vector u2 = Axis.multiplied(Axis.dot(b2.velocity));
+
     solveCollision(body1, body2) {
-    	var axis = new THREE.Vector3().subVectors(body2.position, body1.position);
-    	var dist = body1.radius + body2.radius + edge;
+    	let axis = body2.position.clone().sub(body1.position);
+    	let dist = body1.radius + body2.radius + edge;
     	if (axis.length() < dist) {
-    		var p = axis.clone();
+    		let p = axis.clone();
     		p.setLength(dist - axis.length());
-    		body1.position.sub(p.multiplyScalar(body1.velocity.length() / 
-    			(body1.velocity.length() + body2.velocity.length())));
-    		body2.position.add(p.multiplyScalar(body2.velocity.length() / 
-    			(body1.velocity.length() + body2.velocity.length())));
+
+            body1.position.addScaledVector(
+                p,
+                -body1.velocity.length() / (body1.velocity.length() + body2.velocity.length())
+            );
+            body2.position.addScaledVector(
+                p,
+                body1.velocity.length() / (body2.velocity.length() + body2.velocity.length())
+            );
 
     		axis.normalize();
 
-    		var u1 = axis.multiplyScalar(axis.dot(body1.velocity));
+    		let u1 = axis.multiplyScalar(axis.dot(body1.velocity));
     		axis.negate();
-    		var u2 = axis.multiplyScalar(axis.dot(body2.velocity));
+    		let u2 = axis.multiplyScalar(axis.dot(body2.velocity));
 
-    		var v1 = u1.multiplyScalar(body1.mass).add(u2.multiplyScalar(body2.mass)).sub(u1.sub(u2).multiplyScalar(body2.mass)).multiplyScalar(1.0 / (body1.mass + body2.mass));
-    		var v2 = u1.multiplyScalar(body1.mass).add(u2.multiplyScalar(body2.mass)).sub(u2.sub(u1).multiplyScalar(body1.mass)).multiplyScalar(1.0 / (body1.mass + body2.mass));
-    		body1.velocity = body1.velocity.sub(u1).add(v1);
-    		body2.velocity = body2.velocity.sub(u2).add(v2);
-    		body1.velocity.setLength(body1.velocity.length() * 3.0 / 4.0);
-    		body2.velocity.setLength(body2.velocity.length() * 3.0 / 4.0);
+            let v1 = u1.clone().sub(u2).multiplyScalar(body2.mass).negate()
+                    .addScaledVector(u1, body1.mass).addScaledVector(u2, body2.mass)
+                    .divideScalar(body1.mass + body2.mass),
+                v2 = u2.clone().sub(u1).multiplyScalar(body1.mass).negate()
+                    .addScaledVector(u1, body1.mass).addScaledVector(u2, body2.mass)
+                    .divideScalar(body1.mass + body2.mass);
+
+    		body1.velocity.sub(u1).add(v1);
+    		body2.velocity.sub(u2).add(v2);
+    		body1.velocity.multiplyScalar(3.0 / 4.0);
+    		body2.velocity.multiplyScalar(3.0 / 4.0);
     		return true;
     	}
     	return false;
     }
 
-    Update(dt) {
-    	for (var body of this.bodies) {
-    		wallsCollision(body);
+    update(dt) {
+    	for (let body of this.bodies) {
+    		this.wallsCollision(body);
     		body.move(dt);
     	}
-    	for (var i = 0; i < this.bodies.length; i++) {
-    		for (var j = 0; j < this.bodies.length; j++) {
-    			solveCollision(bodies[i], bodies[j]);
+    	for (let i = 0; i < this.bodies.length - 1; i++) {
+    		for (let j = i + 1; j < this.bodies.length; j++) {
+    			this.solveCollision(
+                    this.bodies[i],
+                    this.bodies[j]
+                );
     		}
     	}
     }
