@@ -1,7 +1,8 @@
-var Scene = require('./Scene').Scene;
-var express = require('express');
-var http = require('http');
-var WebSocket = require('ws');
+const Scene = require('./Scene').Scene;
+const express = require('express');
+const http = require('http');
+const WebSocket = require('ws');
+const three = require('three');
 
 var app = express();
 var scene = new Scene();
@@ -11,7 +12,7 @@ var websocket = new WebSocket.Server({server});
 var loopInterval = 20;
 var port = 3000;
 
-websocket.on('connection', (client, req) => {
+websocket.on('connection', client => {
 	let data = [];
 	for (let body of scene.bodies) {
 		data.push(body.radius);
@@ -21,13 +22,29 @@ websocket.on('connection', (client, req) => {
 		command: 'init',
 		data
 	}));
+
+	client.on('message', msg => {
+        if (msg == 'disable') {
+            scene.setGravity(new three.Vector3());
+            console.log('---->>>> Print');
+            client.send(JSON.stringify({
+            	command: 'callback'
+            }));
+        }
+        if(msg == 'gravity') {
+            scene.setGravity(scene.gravity.negate());
+            client.send(JSON.stringify({
+            	command: 'callback'
+            }));
+        }
+	});
 });
 
 app.get('/', (req, res) => res.sendFile(__dirname + '/public/index.html'));
 app.use(express.static('public'));
 
 setInterval(() => {
-	scene.update(loopInterval);
+	scene.update(0.02);
 
 	let data = [];
 	for (let body of scene.bodies) {

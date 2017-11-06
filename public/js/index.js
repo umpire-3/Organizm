@@ -190,7 +190,7 @@ function main() {
         ballsAmount = data.length;
         balls = new Array();
         for(let i = 0; i < ballsAmount; i++){
-            balls[i] = new Ball(parseFloat(data[i]), new THREE.Vector3(0, 0, 0), parseInt(Math.random()*16777215));
+            balls[i] = new Ball(parseFloat(data[i]), new THREE.Vector3(), parseInt(Math.random()*16777215));
             balls[i].add();
         }
     });

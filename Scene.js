@@ -9,7 +9,7 @@ const cellSize = 200.0,
 class Scene {
     constructor() {
         this.bodies = [];
-        for (let i = 0; i < 50; i++) {
+        for (let i = 0; i < 100; i++) {
             let r = parseInt(Math.random() * 29) + 1;
             let m = Math.pow(r,3) * Math.PI * (4.0 / 3.0);
             let p = new THREE.Vector3(
@@ -36,7 +36,7 @@ class Scene {
 
     setGravity(gravity) {
         for (let body of this.bodies) {
-            body.setAcceleration(gravity);
+            body.acceleration.copy(gravity);
         }
     }
     
@@ -44,32 +44,32 @@ class Scene {
     	if (body.position.x < -cellSize - edge + body.radius) {
     		body.position.x = -cellSize + body.radius;
     		body.velocity.x = -body.velocity.x;
-    		body.velocity.setLength(body.velocity.length() * 3.0 / 4.0);
+    		body.velocity.multiplyScalar(0.8);
     	}
     	if (body.position.x > cellSize + edge - body.radius) {
     		body.position.x = cellSize - body.radius;
     		body.velocity.x = -body.velocity.x;
-    		body.velocity.setLength(body.velocity.length() * 3.0 / 4.0);
+    		body.velocity.multiplyScalar(0.8);
     	}
     	if (body.position.y < -cellSize - edge + body.radius) {
     		body.position.y = -cellSize + body.radius;
     		body.velocity.y = -body.velocity.y;
-    		body.velocity.setLength(body.velocity.length() * 3.0 / 4.0);
+    		body.velocity.multiplyScalar(0.8);
     	}
     	if (body.position.y > cellSize + edge - body.radius) {
     		body.position.y = cellSize - body.radius;
     		body.velocity.y = -body.velocity.y;
-    		body.velocity.setLength(body.velocity.length() * 3.0 / 4.0);
+    		body.velocity.multiplyScalar(0.8);
     	}
     	if (body.position.z < -cellSize - edge + body.radius) {
     		body.position.z = -cellSize + body.radius;
     		body.velocity.z = -body.velocity.z;
-    		body.velocity.setLength(body.velocity.length() * 3.0 / 4.0);
+    		body.velocity.multiplyScalar(0.8);
     	}
     	if (body.position.z > cellSize + edge - body.radius) {
     		body.position.z = cellSize - body.radius;
     		body.velocity.z = -body.velocity.z;
-    		body.velocity.setLength(body.velocity.length() * 3.0 / 4.0);
+    		body.velocity.multiplyScalar(0.8);
     	}
     }
 
@@ -104,8 +104,8 @@ class Scene {
 
     		body1.velocity.sub(u1).add(v1);
     		body2.velocity.sub(u2).add(v2);
-    		body1.velocity.multiplyScalar(3.0 / 4.0);
-    		body2.velocity.multiplyScalar(3.0 / 4.0);
+    		body1.velocity.multiplyScalar(0.8);
+    		body2.velocity.multiplyScalar(0.8);
     		return true;
     	}
     	return false;
@@ -126,5 +126,9 @@ class Scene {
     	}
     }
 }
+
+Scene.prototype.gravity = gravity;
+Scene.prototype.edge = edge;
+Scene.prototype.cellSize = cellSize;
 
 module.exports.Scene = Scene;
