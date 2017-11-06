@@ -73,15 +73,6 @@ class Scene {
     	}
     }
 
-    p1 -= p * (|v1| / (|v1| + |v2|))
-    p2 += p * (|v2| / (|v1| + |v2|))
-
-    Axis.normalize();
-
-    Vector u1 = Axis.multiplied(Axis.dot(b1.velocity));
-    Axis.negate();
-    Vector u2 = Axis.multiplied(Axis.dot(b2.velocity));
-
     solveCollision(body1, body2) {
     	let axis = body2.position.clone().sub(body1.position);
     	let dist = body1.radius + body2.radius + edge;
@@ -100,9 +91,9 @@ class Scene {
 
     		axis.normalize();
 
-    		let u1 = axis.multiplyScalar(axis.dot(body1.velocity));
+    		let u1 = axis.clone().multiplyScalar(axis.dot(body1.velocity));
     		axis.negate();
-    		let u2 = axis.multiplyScalar(axis.dot(body2.velocity));
+    		let u2 = axis.clone().multiplyScalar(axis.dot(body2.velocity));
 
             let v1 = u1.clone().sub(u2).multiplyScalar(body2.mass).negate()
                     .addScaledVector(u1, body1.mass).addScaledVector(u2, body2.mass)
