@@ -2,7 +2,8 @@
 Browser game project
 
 ### Installation
-Run from the root of project
 ```bash
+git clone https://github.com/akisemenovych/Organism.git
+cd Organism
 npm install
 ```
