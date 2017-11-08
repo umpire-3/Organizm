@@ -1,4 +1,8 @@
 # Organism
 Browser game project
 
-After clone - type npm install from the root of the project
+### Installation
+Run from the root of project
+```bash
+npm install
+```
