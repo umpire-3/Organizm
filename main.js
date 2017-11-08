@@ -3,13 +3,14 @@ const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
 const three = require('three');
+const { setGameLoop } = require('node-gameloop');
 
 var app = express();
 var scene = new Scene();
 
 var server = http.createServer(app);
 var websocket = new WebSocket.Server({server});
-var loopInterval = 20;
+var fps = 30;
 var port = 3000;
 
 websocket.on('connection', client => {
@@ -37,14 +38,15 @@ websocket.on('connection', client => {
             	command: 'callback'
             }));
         }
+
+        if(msg == 'log') {
+        	console.log(scene.bodies.length);
+        }
 	});
 });
 
-app.get('/', (req, res) => res.sendFile(__dirname + '/public/index.html'));
-app.use(express.static('public'));
-
-setInterval(() => {
-	scene.update(0.02);
+setGameLoop(dt => {
+	scene.update(dt);
 
 	let data = [];
 	for (let body of scene.bodies) {
@@ -66,7 +68,10 @@ setInterval(() => {
 	    //client.isAlive = false;
 	    //client.ping('', false, true);
 	});
-}, loopInterval);
+}, 1000/fps);
+
+app.get('/', (req, res) => res.sendFile(__dirname + '/public/index.html'));
+app.use(express.static('public'));
 
 server.listen(port, function () {
   console.log(`Listening on port ${port}!`);

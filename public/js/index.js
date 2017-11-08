@@ -66,6 +66,9 @@ function initKeyboard() {
         if (e.keyCode == 90) { // z
             connection.send('disable');
         }
+        if (e.keyCode == 76) { // l
+            connection.send('log');
+        }
 
         keys[e.keyCode] = true;
         return false;
