@@ -1,5 +1,5 @@
 var THREE = require('three');
-var Body = require('./Body').Body;
+var { Body } = require('./Body');
 
 
 const cellSize = 200.0,
@@ -76,7 +76,7 @@ class Scene {
     solveCollision(body1, body2) {
     	let axis = body2.position.clone().sub(body1.position);
     	let dist = body1.radius + body2.radius + edge;
-    	if (axis.length() < dist) {
+    	if (axis.lengthSq() < dist*dist) {
     		let p = axis.clone();
     		p.setLength(dist - axis.length());
 
@@ -86,7 +86,7 @@ class Scene {
             );
             body2.position.addScaledVector(
                 p,
-                body1.velocity.length() / (body2.velocity.length() + body2.velocity.length())
+                body2.velocity.length() / (body1.velocity.length() + body2.velocity.length())
             );
 
     		axis.normalize();
@@ -102,10 +102,8 @@ class Scene {
                     .addScaledVector(u1, body1.mass).addScaledVector(u2, body2.mass)
                     .divideScalar(body1.mass + body2.mass);
 
-    		body1.velocity.sub(u1).add(v1);
-    		body2.velocity.sub(u2).add(v2);
-    		body1.velocity.multiplyScalar(0.8);
-    		body2.velocity.multiplyScalar(0.8);
+    		body1.velocity.sub(u1).add(v1).multiplyScalar(0.8);
+    		body2.velocity.sub(u2).add(v2).multiplyScalar(0.8);
     		return true;
     	}
     	return false;

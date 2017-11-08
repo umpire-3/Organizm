@@ -1,4 +1,4 @@
-const Scene = require('./Scene').Scene;
+const { Scene }  = require('./Scene');
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
@@ -11,7 +11,7 @@ var scene = new Scene();
 var server = http.createServer(app);
 var websocket = new WebSocket.Server({server});
 var fps = 30;
-var port = 3000;
+var port = 80;
 
 websocket.on('connection', client => {
 	let data = [];
