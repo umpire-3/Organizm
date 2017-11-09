@@ -1,47 +1,33 @@
-const { Scene }  = require('./Scene');
 const express = require('express');
-const http = require('http');
-const WebSocket = require('ws');
-const three = require('three');
+const app = express();
+const http = require('http').createServer(app);
+const io = require('socket.io')(http);
+
+const { Scene }  = require('./Scene');
 const { setGameLoop } = require('node-gameloop');
+const three = require('three');
 
-var app = express();
-var scene = new Scene();
 
-var server = http.createServer(app);
-var websocket = new WebSocket.Server({server});
-var fps = 30;
-var port = 80;
+const scene = new Scene();
+const fps = 30;
+const port = 80;
 
-websocket.on('connection', client => {
+io.on('connection', socket => {
 	let data = [];
 	for (let body of scene.bodies) {
 		data.push(body.radius);
 	}
 
-	client.send(JSON.stringify({
-		command: 'init',
-		data
-	}));
+	socket.emit('init', data);
 
-	client.on('message', msg => {
-        if (msg == 'disable') {
-            scene.setGravity(new three.Vector3());
-            console.log('---->>>> Print');
-            client.send(JSON.stringify({
-            	command: 'callback'
-            }));
-        }
-        if(msg == 'gravity') {
-            scene.setGravity(scene.gravity.negate());
-            client.send(JSON.stringify({
-            	command: 'callback'
-            }));
-        }
+	socket.on('disable', msg => {
+        scene.setGravity(new three.Vector3());
+        socket.emit('callback');
+	});
 
-        if(msg == 'log') {
-        	console.log(scene.bodies.length);
-        }
+	socket.on('gravity', msg => {
+        scene.setGravity(scene.gravity.negate());
+        socket.emit('callback');
 	});
 });
 
@@ -57,22 +43,14 @@ setGameLoop(dt => {
 		];
 		data.push(ball);
 	}
-	let outputMessage = JSON.stringify({
-		command: 'update',
-		data
-	});
 
-	websocket.clients.forEach(client => {
-		if (client.isAlive === false) return client.terminate();
-		client.send(outputMessage);
-	    //client.isAlive = false;
-	    //client.ping('', false, true);
-	});
+	io.emit('update', data);
+
 }, 1000/fps);
 
 app.get('/', (req, res) => res.sendFile(__dirname + '/public/index.html'));
 app.use(express.static('public'));
 
-server.listen(port, function () {
+http.listen(port, () => {
   console.log(`Listening on port ${port}!`);
 });

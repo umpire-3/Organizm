@@ -7,9 +7,9 @@ const cellSize = 200.0,
     gravity = new THREE.Vector3(0, -98, 0);
 
 class Scene {
-    constructor() {
+    constructor(ballsAmount = 50) {
         this.bodies = [];
-        for (let i = 0; i < 100; i++) {
+        for (let i = 0; i < ballsAmount; i++) {
             let r = parseInt(Math.random() * 29) + 1;
             let m = Math.pow(r,3) * Math.PI * (4.0 / 3.0);
             let p = new THREE.Vector3(

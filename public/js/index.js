@@ -4,7 +4,7 @@ function $(e){
     return document.getElementById(e);
 }
 
-var connection,
+var socket,
     controls = {
         'Rotation of cube speed': 0.02,
         'Sphere\'s jump speed': 0.04,
@@ -13,8 +13,29 @@ var connection,
     },
     scene, camera, renderer,
     balls, ballsAmount,
-    processKeyboard, updateStats;
+    keyboard, updateStats;
 
+function initSocket() {
+    socket = new io();
+    
+    socket.on('callback', data => {
+        console.log(data);
+    });
+    socket.on('init', data => {
+        console.log(data, '\nlength = ' + data.length);
+        ballsAmount = data.length;
+        balls = new Array();
+        for(let i = 0; i < ballsAmount; i++){
+            balls[i] = new Ball(parseFloat(data[i]), new THREE.Vector3(), parseInt(Math.random()*16777215));
+            balls[i].add();
+        }
+    });
+    socket.on('update', data => {
+        for (let [i, ball] of balls.entries()) {
+            ball.Mesh.position.set(data[i][0], data[i][1], data[i][2]);
+        }
+    });
+}
 function initStats(containerId) {
     function statsInit(mode) {
         let stats = new Stats();
@@ -40,46 +61,34 @@ function initStats(containerId) {
     return statsUpdate;
 }
 function initKeyboard() {
-    let keys = new Array(256).fill(false);
+    let keyboard = new Keyboard();
 
-    function processKeyboard() {
-        if (keys[87]) { // w
-            camera.position.addScaledVector(camera.getWorldDirection(), controls['Camera\'s velocity']);
-        }
-        if (keys[65]) { // a
-            camera.position.addScaledVector(new THREE.Vector3().crossVectors(camera.up, camera.getWorldDirection()), controls['Camera\'s velocity']);
-        }
-        if (keys[83]) { // s
-            camera.position.addScaledVector(camera.getWorldDirection().negate(), controls['Camera\'s velocity']);
-        }
-        if (keys[68]) { // d
-            camera.position.addScaledVector(new THREE.Vector3().crossVectors(camera.getWorldDirection(), camera.up), controls['Camera\'s velocity']);
-        }
-    }
-
-    document.addEventListener('keydown', e => {
-        //console.log(e.keyCode);
-
-        if (e.keyCode == 32) { // space
-            connection.send('gravity');
-        }
-        if (e.keyCode == 90) { // z
-            connection.send('disable');
-        }
-        if (e.keyCode == 76) { // l
-            connection.send('log');
-        }
-
-        keys[e.keyCode] = true;
-        return false;
+    // WhileKeyPressed
+    keyboard.on('press', 87, () => { // w
+        camera.position.addScaledVector(camera.getWorldDirection(), controls['Camera\'s velocity']);
+    });
+    keyboard.on('press', 65, () => { // a
+        camera.position.addScaledVector(new THREE.Vector3().crossVectors(camera.up, camera.getWorldDirection()), controls['Camera\'s velocity']);
+    });
+    keyboard.on('press', 83, () => { // s
+        camera.position.addScaledVector(camera.getWorldDirection().negate(), controls['Camera\'s velocity']);
+    });
+    keyboard.on('press', 68, () => { // d
+        camera.position.addScaledVector(new THREE.Vector3().crossVectors(camera.getWorldDirection(), camera.up), controls['Camera\'s velocity']);
     });
 
-    document.addEventListener('keyup', e => {
-        keys[e.keyCode] = false;
-        return false;
+    // OnKeyDown
+    keyboard.on('down', 32, () => { // space
+        socket.emit('gravity')
+    });
+    keyboard.on('down', 90, () => { // z
+        socket.emit('disable')
+    });
+    keyboard.on('down', 76, () => { // l
+        socket.emit('log')
     });
 
-    return processKeyboard;
+    return keyboard;
 }
 function initMouseLook() {
     let startX, startY,
@@ -175,42 +184,21 @@ function MainLoop(){
     requestAnimationFrame(MainLoop);
 
     updateStats();
-    processKeyboard();
+    keyboard.process();
 
     renderer.render(scene, camera);
 }
 
 function main() {
-    connection = new MassageHandler(
-        new WebSocket('ws://' + document.location.host + document.location.pathname)
-    );
-    
-    connection.use('callback', data => {
-        console.log(data);
-    });
-    connection.use('init', data => {
-        console.log('length = ' + data.length);
-        ballsAmount = data.length;
-        balls = new Array();
-        for(let i = 0; i < ballsAmount; i++){
-            balls[i] = new Ball(parseFloat(data[i]), new THREE.Vector3(), parseInt(Math.random()*16777215));
-            balls[i].add();
-        }
-    });
-    connection.use('update', data => {
-        for (let [i, ball] of balls.entries()) {
-            ball.Mesh.position.set(data[i][0], data[i][1], data[i][2]);
-        }
-    });
-
     let gui = new dat.GUI();
     gui.add(controls, 'Rotation of cube speed', 0, 0.5);
     gui.add(controls, 'Sphere\'s jump speed', 0, 0.5);
     gui.add(controls, 'Camera\'s velocity', 0, 5);
     gui.add(controls, 'Mouse look speed', 0, 0.05);
 
+    initSocket();
     updateStats = initStats('Stats');
-    processKeyboard = initKeyboard();
+    keyboard = initKeyboard();
     initMouseLook();
     initRenderTarget();
     initScene();
