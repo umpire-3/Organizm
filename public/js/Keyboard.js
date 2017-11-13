@@ -1,33 +1,36 @@
 class Keyboard {
     constructor() {
         this.keys = {
-            up: Utils.makeIterable(),
-            down: Utils.makeIterable(),
-            press: Utils.makeIterable(),
+            up: new Map(),
+            down: new Map(),
+            press: new Map(),
         }
 
         document.addEventListener('keydown', e => {
             //console.log(e.keyCode);
 
-            let key = this.keys.down[e.keyCode];
+            let key = this.keys.down.get(e.keyCode);
             if (key) {
                 key.action(...key.args);
             }
 
-            if(this.keys.press.hasOwnProperty(e.keyCode)){
-                this.keys.press[e.keyCode].pressed = true;
+            key = this.keys.press.get(e.keyCode);
+            if (key) {
+                key.pressed = true;
             }
+
             return false;
         });
 
         document.addEventListener('keyup', e => {
-            let key = this.keys.up[e.keyCode];
+            let key = this.keys.up.get(e.keyCode);
             if (key) {
                 key.action(...key.args);
             }
 
-            if(this.keys.press.hasOwnProperty(e.keyCode)){
-                this.keys.press[e.keyCode].pressed = false;
+            key = this.keys.press.get(e.keyCode);
+            if (key) {
+                key.pressed = false;
             }
             return false;
         });
@@ -49,14 +52,14 @@ class Keyboard {
     on(event, key, action, ...args) {
         switch (event) {
             case 'up': case 'down':
-                this.keys[event][key] = { action, args };
+                this.keys[event].set(key, { action, args });
                 break;
             case 'press':
-                this.keys.press[key] = {
+                this.keys.press.set(key, {
                     pressed: false,
                     action,
                     args
-                };
+                });
                 break;
             default:
                 console.log('Invalid key event (use [\'up\', \'down\', \'press\']).');
@@ -66,7 +69,7 @@ class Keyboard {
     clean(event, key) {
         let keys = this.keys[event];
         if (keys) {
-            delete keys[key];
+            keys.delete(key);
         }
     }
 }
