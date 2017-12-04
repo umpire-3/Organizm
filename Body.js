@@ -1,4 +1,5 @@
-var THREE = require('three');
+const THREE = require('three');
+
 class Body {
 
 	constructor ({
@@ -21,4 +22,4 @@ class Body {
     }
 }
 
-module.exports.Body = Body;
+module.exports = Body;

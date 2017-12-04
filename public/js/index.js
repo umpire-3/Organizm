@@ -12,28 +12,18 @@ var socket,
         'Mouse look speed': 0.002
     },
     scene, camera, renderer,
-    balls, ballsAmount,
+    player, orbitControls,
     keyboard, updateStats;
 
 function initSocket() {
     socket = new io();
-    
-    socket.on('callback', data => {
-        console.log(data);
+
+    socket.on('init', params => {
+        player = new Player(orbitControls, params);
+        scene.add(player.threeObject);
     });
-    socket.on('init', data => {
-        console.log(data, '\nlength = ' + data.length);
-        ballsAmount = data.length;
-        balls = new Array();
-        for(let i = 0; i < ballsAmount; i++){
-            balls[i] = new Ball(parseFloat(data[i]), new THREE.Vector3(), parseInt(Math.random()*16777215));
-            balls[i].add();
-        }
-    });
-    socket.on('update', data => {
-        for (let [i, ball] of balls.entries()) {
-            ball.Mesh.position.set(data[i][0], data[i][1], data[i][2]);
-        }
+    socket.on('update', params => {
+        player.update(params);
     });
 }
 function initStats(containerId) {
@@ -63,65 +53,52 @@ function initStats(containerId) {
 function initKeyboard() {
     let keyboard = new Keyboard();
 
-    // WhileKeyPressed
-    keyboard.on('press', 87, () => { // w
-        camera.position.addScaledVector(camera.getWorldDirection(), controls['Camera\'s velocity']);
+    keyboard.on('press', Keys.VK_W, () => {
+        let direction = player.getCamDirection();
+        socket.emit('move', direction.setLength(10));
     });
-    keyboard.on('press', 65, () => { // a
-        camera.position.addScaledVector(new THREE.Vector3().crossVectors(camera.up, camera.getWorldDirection()), controls['Camera\'s velocity']);
+    keyboard.on('press', Keys.VK_S, () => {
+        let direction = player.getCamDirection();
+        socket.emit('move', direction.setLength(10).negate());
     });
-    keyboard.on('press', 83, () => { // s
-        camera.position.addScaledVector(camera.getWorldDirection().negate(), controls['Camera\'s velocity']);
+    keyboard.on('press', Keys.VK_A, () => {
+        let direction = player.getCamDirection();
+        socket.emit('move', new THREE.Vector3()
+            .crossVectors(
+                camera.up,
+                direction
+            ).setLength(10)
+        );
     });
-    keyboard.on('press', 68, () => { // d
-        camera.position.addScaledVector(new THREE.Vector3().crossVectors(camera.getWorldDirection(), camera.up), controls['Camera\'s velocity']);
+    keyboard.on('press', Keys.VK_D, () => {
+        let direction = player.getCamDirection();
+        socket.emit('move', new THREE.Vector3()
+            .crossVectors(
+                direction,
+                camera.up
+            ).setLength(10)
+        );
     });
 
     // OnKeyDown
-    keyboard.on('down', 32, () => { // space
+    keyboard.on('down', Keys.VK_SPACE, () => {
         socket.emit('gravity')
     });
-    keyboard.on('down', 90, () => { // z
+    keyboard.on('down', Keys.VK_Z, () => {
         socket.emit('disable')
     });
-    keyboard.on('down', 76, () => { // l
+    keyboard.on('down', Keys.VK_L, () => {
         socket.emit('log')
     });
 
     return keyboard;
 }
 function initMouseLook() {
-    let startX, startY,
-        rot = new THREE.Matrix4();
+    orbitControls = new THREE.OrbitControls(camera);
 
-    function dragStop() {
-        document.onmousemove = null;
-        document.onmouseup = null;
-        return false;
-    }
+    orbitControls.enableZoom = true;
 
-    function mouselook(e) {
-        dx = (startX - e.clientX) * controls['Mouse look speed'];
-        dy = (startY - e.clientY) * controls['Mouse look speed'];
-        startX = e.clientX;
-        startY = e.clientY;
-        rot.makeRotationAxis(camera.up, dx);
-        camera.lookAt(new THREE.Vector3().addVectors(camera.position, camera.getWorldDirection().transformDirection(rot)));
-        rot.makeRotationAxis(new THREE.Vector3().crossVectors(camera.getWorldDirection(), camera.up), dy);
-        camera.lookAt(new THREE.Vector3().addVectors(camera.position, camera.getWorldDirection().transformDirection(rot)));
-        return false;
-
-    }
-
-    function dragStart(e) {
-        startX = e.clientX;
-        startY = e.clientY;
-        document.onmousemove = mouselook;
-        document.onmouseup = dragStop;
-        return false;
-    }
-
-    document.onmousedown = dragStart;
+    orbitControls.update();
 }
 function initRenderTarget(){
     scene = new THREE.Scene();
@@ -165,7 +142,7 @@ function initScene() {
         [     0    ,     0    , Math.PI ],
         [     0    ,     0    , Math.PI ]
     ];
-    console.log(pos);
+
     for(let i = 0; i < 6; i++){
         plane = new THREE.Mesh(plGeo, plMat);
         plane.position.set(pos[i][0], pos[i][1], pos[i][2]);
@@ -184,6 +161,7 @@ function MainLoop(){
     requestAnimationFrame(MainLoop);
 
     updateStats();
+    orbitControls.update();
     keyboard.process();
 
     renderer.render(scene, camera);
@@ -196,14 +174,14 @@ function main() {
     gui.add(controls, 'Camera\'s velocity', 0, 5);
     gui.add(controls, 'Mouse look speed', 0, 0.05);
 
+
     initSocket();
     updateStats = initStats('Stats');
     keyboard = initKeyboard();
-    initMouseLook();
     initRenderTarget();
     initScene();
 
-    MainLoop();
+    initMouseLook();
 
-    return 0;
+    MainLoop();
 }

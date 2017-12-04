@@ -4,7 +4,7 @@ class Keyboard {
             up: new Map(),
             down: new Map(),
             press: new Map(),
-        }
+        };
 
         document.addEventListener('keydown', e => {
             //console.log(e.keyCode);

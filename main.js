@@ -3,7 +3,8 @@ const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 
-const { Scene }  = require('./Scene');
+const Scene = require('./Scene');
+const Player = require('./Player');
 const { setGameLoop } = require('node-gameloop');
 const three = require('three');
 
@@ -13,44 +14,41 @@ const fps = 30;
 const port = 80;
 
 io.on('connection', socket => {
-	let data = [];
-	for (let body of scene.bodies) {
-		data.push(body.radius);
-	}
 
-	socket.emit('init', data);
+	let player = new Player();
+	scene.addPlayer(socket.id, player);
 
-	socket.on('disable', msg => {
-        scene.setGravity(new three.Vector3());
-        socket.emit('callback');
-	});
+	socket.emit('init', {
+	    radius: player.body.radius,
+        position: player.body.position,
+        color: player.color
+    });
 
-	socket.on('gravity', msg => {
-        scene.setGravity(scene.gravity.negate());
-        socket.emit('callback');
-	});
+	socket.on('move', force => {
+	    player.move(force);
+    });
+	socket.on('disconnect', () => {
+	    scene.removePlayer(socket.id);
+    });
 });
 
 setGameLoop(dt => {
 	scene.update(dt);
 
-	let data = [];
-	for (let body of scene.bodies) {
-		let ball = [
-			body.position.x,
-			body.position.y,
-			body.position.z
-		];
-		data.push(ball);
-	}
+	for (let id in io.sockets.connected) {
+	    let socket = io.sockets.connected[id],
+            player = scene.getPlayer(id);
 
-	io.emit('update', data);
+        socket.emit('update', {
+            position: player.body.position
+        });
+    }
 
 }, 1000/fps);
 
-app.get('/', (req, res) => res.sendFile(__dirname + '/public/index.html'));
+app.get('/', (_, res) => res.sendFile(__dirname + '/public/index.html'));
 app.use(express.static('public'));
 
 http.listen(port, () => {
-  console.log(`Listening on port ${port}!`);
+  console.log(`Server started at localhost:${port}!`);
 });
