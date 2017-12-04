@@ -13,7 +13,7 @@ class Scene {
     }
 
     addPlayer(id, player) {
-	    this.players.set(id, player);
+	    return this.players.set(id, player);
     }
 
     removePlayer(id) {
@@ -24,10 +24,21 @@ class Scene {
 	    return this.players.get(id);
     }
 
+    getPlayersInfo() {
+	    return Array.from(
+	        this.players,
+            ([id, player]) => [id, player.getInfo()]
+        );
+    }
+
     update(dt) {
 	    for (let player of this.players.values()) {
 	        player.update(dt);
         }
+    }
+
+    [Symbol.iterator]() {
+        return this.players.values();
     }
 }
 

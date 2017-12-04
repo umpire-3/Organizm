@@ -6,7 +6,6 @@ const io = require('socket.io')(http);
 const Scene = require('./Scene');
 const Player = require('./Player');
 const { setGameLoop } = require('node-gameloop');
-const three = require('three');
 
 
 const scene = new Scene();
@@ -15,13 +14,20 @@ const port = 80;
 
 io.on('connection', socket => {
 
-	let player = new Player();
+	let player = new Player(),
+		playersInfo = scene.getPlayersInfo();
+
 	scene.addPlayer(socket.id, player);
 
 	socket.emit('init', {
-	    radius: player.body.radius,
-        position: player.body.position,
-        color: player.color
+		playersInfo,
+        id: socket.id,
+		thisPlayerInfo: player.getInfo()
+	});
+
+	socket.broadcast.emit('player joined', {
+	    id: socket.id,
+        playerInfo: player.getInfo()
     });
 
 	socket.on('move', force => {
@@ -29,20 +35,19 @@ io.on('connection', socket => {
     });
 	socket.on('disconnect', () => {
 	    scene.removePlayer(socket.id);
+	    socket.broadcast.emit('player left', socket.id);
     });
 });
 
 setGameLoop(dt => {
 	scene.update(dt);
 
-	for (let id in io.sockets.connected) {
-	    let socket = io.sockets.connected[id],
-            player = scene.getPlayer(id);
-
-        socket.emit('update', {
-            position: player.body.position
-        });
-    }
+	io.emit('update', Array.from(
+		scene.players,
+        ([id, player]) => [id, {
+			position: player.body.position
+		}]
+	));
 
 }, 1000/fps);
 

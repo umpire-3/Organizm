@@ -12,18 +12,45 @@ var socket,
         'Mouse look speed': 0.002
     },
     scene, camera, renderer,
-    player, orbitControls,
-    keyboard, updateStats;
+    thisPlayer, orbitControls,
+    keyboard, updateStats,
+    players = new PlayersContainer();
 
 function initSocket() {
     socket = new io();
 
-    socket.on('init', params => {
-        player = new Player(orbitControls, params);
-        scene.add(player.threeObject);
+    socket.on('init', ({
+       id,
+       thisPlayerInfo,
+       playersInfo
+    }) => {
+        for (let [ id, playerInfo ] of playersInfo) {
+            players.add(id, new Player(playerInfo));
+        }
+
+        thisPlayer = new Player({
+            controls: orbitControls,
+            ...thisPlayerInfo
+        });
+        players.add(id, thisPlayer);
     });
+
+    socket.on('player joined', ({ id, playerInfo }) => {
+        players.add(id, new Player(playerInfo));
+    });
+
+    socket.on('player left', id => {
+        players.remove(id);
+    });
+
     socket.on('update', params => {
-        player.update(params);
+        for (let [ id, playerParams ] of params) {
+            let player = players.get(id);
+
+            if (player) {
+                player.update(playerParams);
+            }
+        }
     });
 }
 function initStats(containerId) {
@@ -54,15 +81,15 @@ function initKeyboard() {
     let keyboard = new Keyboard();
 
     keyboard.on('press', Keys.VK_W, () => {
-        let direction = player.getCamDirection();
+        let direction = thisPlayer.getCamDirection();
         socket.emit('move', direction.setLength(10));
     });
     keyboard.on('press', Keys.VK_S, () => {
-        let direction = player.getCamDirection();
+        let direction = thisPlayer.getCamDirection();
         socket.emit('move', direction.setLength(10).negate());
     });
     keyboard.on('press', Keys.VK_A, () => {
-        let direction = player.getCamDirection();
+        let direction = thisPlayer.getCamDirection();
         socket.emit('move', new THREE.Vector3()
             .crossVectors(
                 camera.up,
@@ -71,7 +98,7 @@ function initKeyboard() {
         );
     });
     keyboard.on('press', Keys.VK_D, () => {
-        let direction = player.getCamDirection();
+        let direction = thisPlayer.getCamDirection();
         socket.emit('move', new THREE.Vector3()
             .crossVectors(
                 direction,
@@ -101,7 +128,6 @@ function initMouseLook() {
     orbitControls.update();
 }
 function initRenderTarget(){
-    scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 5000);
 
     renderer = new THREE.WebGLRenderer();
@@ -111,6 +137,8 @@ function initRenderTarget(){
     document.body.appendChild(renderer.domElement);
 }
 function initScene() {
+    scene = new THREE.Scene();
+    scene.add(players.group);
 
     let spotLight = new THREE.SpotLight(0xffffff);
     spotLight.position.set(-200, 200, -200);

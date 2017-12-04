@@ -1,0 +1,26 @@
+{
+  "name": "organism",
+  "version": "1.0.0",
+  "description": "browser game",
+  "main": "main.js",
+  "dependencies": {
+    "express": "^4.16.2",
+    "node-gameloop": "^0.1.4",
+    "socket.io": "^2.0.4",
+    "three": "^0.88.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/akisemenovych/Organism.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/akisemenovych/Organism/issues"
+  },
+  "homepage": "https://github.com/akisemenovych/Organism#readme"
+}

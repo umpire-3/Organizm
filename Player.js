@@ -27,6 +27,14 @@ class Player {
     update(dt) {
         this.body.move(dt);
     }
+
+    getInfo() {
+        return {
+            radius: this.body.radius,
+            position: this.body.position,
+            color: this.color
+        };
+    }
 }
 
 module.exports = Player;

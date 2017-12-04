@@ -1,5 +1,5 @@
 class Player {
-    constructor(controls, {radius, position, color}) {
+    constructor({controls, radius, position, color}) {
         if (!radius || !position) {
             throw Error('Player: Radius or position are not specified');
         }
@@ -11,11 +11,13 @@ class Player {
         this.Mesh.castShadow = true;
         this.Mesh.position.set(position.x, position.y, position.z);
 
-        controls.target = this.Mesh.position;
-        this.controls = controls;
+        if (controls) {
+            controls.target = this.Mesh.position;
+            this.controls = controls;
+        }
     }
 
-    get threeObject() {
+    get THREE_Object() {
         return this.Mesh;
     }
 
@@ -28,7 +30,14 @@ class Player {
     }
 
     update({position}) {
-        this.controls.object.position.add(new THREE.Vector3().subVectors(position, this.Mesh.position));
+        if(this.controls) {
+            this.controls.object.position.add(
+                new THREE.Vector3().subVectors(
+                    position,
+                    this.Mesh.position
+                )
+            );
+        }
 
         this.Mesh.position.copy(position);
     }
