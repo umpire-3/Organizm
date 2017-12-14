@@ -1,23 +1,20 @@
-class PlayersContainer {
+class PlayersContainer extends Map {
     constructor() {
-        this.players = new Map();
+        super();
         this.group = new THREE.Group();
     }
 
-    add(id, player) {
-        this.players.set(id, player);
+    set(id, player) {
         this.group.add(player.THREE_Object);
+        return super.set(id, player);
     }
 
-    remove(id) {
-        let player = this.players.get(id);
-        this.group.remove(player.THREE_Object);
+    delete(id) {
+        let player = this.get(id);
+        if (player) {
+            this.group.remove(player.THREE_Object);
+        }
 
-        return this.players.delete(id);
+        return super.delete(id);
     }
-
-    get(id) {
-        return this.players.get(id);
-    }
-
 }

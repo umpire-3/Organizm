@@ -38,7 +38,7 @@ class Keyboard {
     }
 
     process() {
-        for (let { 
+        for (let {
             pressed, 
             action, 
             args 
@@ -47,6 +47,16 @@ class Keyboard {
                 action(...args);
             }
         }
+    }
+
+    getPressedKeys() {
+        let keys = [];
+        for (let [keyCode, { pressed }] of this.keys.press) {
+            if (pressed) {
+                keys.push(keyCode);
+            }
+        }
+        return keys;
     }
 
     on(event, key, action, ...args) {

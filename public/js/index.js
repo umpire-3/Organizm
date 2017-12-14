@@ -4,52 +4,93 @@ function $(e){
     return document.getElementById(e);
 }
 
-var socket,
-    controls = {
-        'Rotation of cube speed': 0.02,
-        'Sphere\'s jump speed': 0.04,
-        'Camera\'s velocity': 5.0,
-        'Mouse look speed': 0.002
-    },
+const MovementSpeed = 1000;
+
+let socket,
+    // controls = {
+    //     'Rotation of cube speed': 0.02,
+    //     'Sphere\'s jump speed': 0.04,
+    //     'Camera\'s velocity': 5.0,
+    //     'Mouse look speed': 0.002
+    // },
     scene, camera, renderer,
     thisPlayer, orbitControls,
     keyboard, updateStats,
-    players = new PlayersContainer();
+    players = new PlayersContainer(),
+    feed = {
+        pieces: [],
+        group: new THREE.Group(),
+        remove(index) {
+            this.group.remove(this.pieces[index].THREE_Object);
+            this.pieces.splice(index, 1);
+        }
+    },
+    controls = {
+        [Keys.VK_W]: new THREE.Vector3(),
+        [Keys.VK_A]: new THREE.Vector3(),
+        [Keys.VK_S]: new THREE.Vector3(),
+        [Keys.VK_D]: new THREE.Vector3()
+    };
 
+function initPlayers({ thisPlayerData, otherPlayersData }) {
+    for (let [ id, playerData ] of otherPlayersData) {
+        players.set(id, new Player(playerData));
+    }
+
+    thisPlayer = new Player({
+        controls: orbitControls,
+        ...thisPlayerData
+    });
+    players.set(socket.id, thisPlayer);
+
+    camera.position.addVectors(
+        thisPlayer.position,
+        new THREE.Vector3(100, 0, 0)
+    );
+}
+function initFeed(feedData) {
+    for (let pos of feedData) {
+        let piece = new Feed(pos);
+        feed.pieces.push(piece)
+        feed.group.add(piece.THREE_Object);
+    }
+}
 function initSocket() {
     socket = new io();
 
     socket.on('init', ({
-       id,
-       thisPlayerInfo,
-       playersInfo
+        playersData,
+        feedData
     }) => {
-        for (let [ id, playerInfo ] of playersInfo) {
-            players.add(id, new Player(playerInfo));
-        }
-
-        thisPlayer = new Player({
-            controls: orbitControls,
-            ...thisPlayerInfo
-        });
-        players.add(id, thisPlayer);
+        initPlayers(playersData);
+        initFeed(feedData);
     });
 
-    socket.on('player joined', ({ id, playerInfo }) => {
-        players.add(id, new Player(playerInfo));
+    socket.on('player joined', ({ id, playerData }) => {
+        console.log(`Player with id - ${id} was connected`);
+        players.set(id, new Player(playerData));
     });
 
     socket.on('player left', id => {
-        players.remove(id);
+        console.log(`Player with id - ${id} was disconnected`);
+        players.delete(id);
     });
 
     socket.on('update', params => {
-        for (let [ id, playerParams ] of params) {
+        for (let [ id, playerData ] of params) {
             let player = players.get(id);
 
             if (player) {
-                player.update(playerParams);
+                player.update(playerData);
             }
+        }
+    });
+
+    socket.on('feed', ({ id, piece, delta }) => {
+        feed.remove(piece);
+        let player = players.get(id);
+        if (player) {
+            player.radius += delta;
         }
     });
 }
@@ -78,47 +119,34 @@ function initStats(containerId) {
     return statsUpdate;
 }
 function initKeyboard() {
-    let keyboard = new Keyboard();
+    keyboard = new Keyboard();
 
     keyboard.on('press', Keys.VK_W, () => {
-        let direction = thisPlayer.getCamDirection();
-        socket.emit('move', direction.setLength(10));
+        let direction = camera.getWorldDirection();
+        direction.setLength(MovementSpeed);
+        controls[Keys.VK_W] = direction;
     });
     keyboard.on('press', Keys.VK_S, () => {
-        let direction = thisPlayer.getCamDirection();
-        socket.emit('move', direction.setLength(10).negate());
+        let direction = camera.getWorldDirection();
+        direction.setLength(MovementSpeed).negate();
+        controls[Keys.VK_S] = direction;
     });
     keyboard.on('press', Keys.VK_A, () => {
-        let direction = thisPlayer.getCamDirection();
-        socket.emit('move', new THREE.Vector3()
+        let direction = camera.getWorldDirection();
+        controls[Keys.VK_A] = new THREE.Vector3()
             .crossVectors(
                 camera.up,
                 direction
-            ).setLength(10)
-        );
+            ).setLength(MovementSpeed);
     });
     keyboard.on('press', Keys.VK_D, () => {
-        let direction = thisPlayer.getCamDirection();
-        socket.emit('move', new THREE.Vector3()
+        let direction = camera.getWorldDirection();
+        controls[Keys.VK_D] = new THREE.Vector3()
             .crossVectors(
                 direction,
                 camera.up
-            ).setLength(10)
-        );
+            ).setLength(MovementSpeed);
     });
-
-    // OnKeyDown
-    keyboard.on('down', Keys.VK_SPACE, () => {
-        socket.emit('gravity')
-    });
-    keyboard.on('down', Keys.VK_Z, () => {
-        socket.emit('disable')
-    });
-    keyboard.on('down', Keys.VK_L, () => {
-        socket.emit('log')
-    });
-
-    return keyboard;
 }
 function initMouseLook() {
     orbitControls = new THREE.OrbitControls(camera);
@@ -136,9 +164,11 @@ function initRenderTarget(){
     renderer.shadowMap.enabled = true;
     document.body.appendChild(renderer.domElement);
 }
-function initScene() {
+function initScene(groups) {
     scene = new THREE.Scene();
-    scene.add(players.group);
+    for (let group of groups) {
+        scene.add(group);
+    }
 
     let spotLight = new THREE.SpotLight(0xffffff);
     spotLight.position.set(-200, 200, -200);
@@ -179,10 +209,6 @@ function initScene() {
         plane.rotateZ(rot[i][2]);
         scene.add(plane);
     }
-
-
-    camera.position.set(-200, 200, 200);
-    camera.lookAt(scene.position);
 }
 
 function MainLoop(){
@@ -192,24 +218,34 @@ function MainLoop(){
     orbitControls.update();
     keyboard.process();
 
+    let direction = new THREE.Vector3();
+    for (let key of keyboard.getPressedKeys()) {
+        direction.add(controls[key]);
+    }
+    if (direction.x != 0 || direction.y != 0 || direction.z != 0) {
+        socket.emit('update', direction);
+    }
+
     renderer.render(scene, camera);
 }
 
 function main() {
-    let gui = new dat.GUI();
-    gui.add(controls, 'Rotation of cube speed', 0, 0.5);
-    gui.add(controls, 'Sphere\'s jump speed', 0, 0.5);
-    gui.add(controls, 'Camera\'s velocity', 0, 5);
-    gui.add(controls, 'Mouse look speed', 0, 0.05);
+    // let gui = new dat.GUI();
+    // gui.add(controls, 'Rotation of cube speed', 0, 0.5);
+    // gui.add(controls, 'Sphere\'s jump speed', 0, 0.5);
+    // gui.add(controls, 'Camera\'s velocity', 0, 5);
+    // gui.add(controls, 'Mouse look speed', 0, 0.05);
 
+    updateStats = initStats('Stats');
+    initKeyboard();
+    initRenderTarget();
+    initScene([
+        players.group,
+        feed.group
+    ]);
+    initMouseLook();
 
     initSocket();
-    updateStats = initStats('Stats');
-    keyboard = initKeyboard();
-    initRenderTarget();
-    initScene();
-
-    initMouseLook();
 
     MainLoop();
 }

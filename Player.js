@@ -17,23 +17,38 @@ class Player {
     }
 
     move(force) {
-        this.body.velocity.addScaledVector(force, 1/this.body.mass);
+        // this.body.position.addScaledVector(force, 1/this.body.mass);
+        this.body.velocity.copy(new THREE.Vector3().addScaledVector(force, 1/this.body.mass));
     }
 
-    // feed(...) {
-    //    TODO: implement this later
-    // }
+    feed() {
+        this.body.radius += 1;
+        this.body.mass *= 1.1;
+        return 1;
+    }
 
     update(dt) {
-        this.body.move(dt);
+        this.body.update(dt);
     }
 
-    getInfo() {
+    getData() {
         return {
             radius: this.body.radius,
             position: this.body.position,
             color: this.color
         };
+    }
+
+    get position() {
+        return this.body.position;
+    }
+
+    get radius() {
+        return this.body.radius;
+    }
+
+    get mass() {
+        return this.body.mass;
     }
 }
 

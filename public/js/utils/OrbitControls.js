@@ -9,7 +9,7 @@
 // This set of controls performs orbiting, dollying (zooming), and panning.
 // Unlike TrackballControls, it maintains the "up" direction object.up (+Y by default).
 //
-//    Orbit - left mouse / touch: one finger move
+//    Orbit - left mouse / touch: one finger update
 //    Zoom - middle mouse, or mousewheel / touch: two finger spread or squish
 //    Pan - right mouse, or arrow keys / touch: three finger swipe
 
@@ -166,7 +166,7 @@ THREE.OrbitControls = function ( object, domElement ) {
             // restrict radius to be between desired limits
             spherical.radius = Math.max( scope.minDistance, Math.min( scope.maxDistance, spherical.radius ) );
 
-            // move target to panned location
+            // update target to panned location
             scope.target.add( panOffset );
 
             offset.setFromSpherical( spherical );

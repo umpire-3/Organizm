@@ -1,24 +1,15 @@
-class Player {
+class Player extends Organism {
     constructor({controls, radius, position, color}) {
-        if (!radius || !position) {
-            throw Error('Player: Radius or position are not specified');
-        }
-
-        let geometry = new THREE.SphereGeometry(radius, 32, 32),
-            material = new THREE.MeshPhongMaterial({color: color});
-
-        this.Mesh = new THREE.Mesh(geometry, material);
-        this.Mesh.castShadow = true;
-        this.Mesh.position.set(position.x, position.y, position.z);
+        super({
+            radius,
+            position,
+            color
+        });
 
         if (controls) {
             controls.target = this.Mesh.position;
             this.controls = controls;
         }
-    }
-
-    get THREE_Object() {
-        return this.Mesh;
     }
 
     getCamDirection() {
@@ -30,7 +21,7 @@ class Player {
     }
 
     update({position}) {
-        if(this.controls) {
+        if (this.controls) {
             this.controls.object.position.add(
                 new THREE.Vector3().subVectors(
                     position,
@@ -42,10 +33,17 @@ class Player {
         this.Mesh.position.copy(position);
     }
 
-    // setupControls(keyboard) {
-    //     keyboard.on('press', Keys.VK_K, () => {
-    //
-    //     });
-    // }
+    get radius() {
+        return super.radius;
+    }
 
+    set radius(r) {
+        if (this.controls) {
+            let direction = this.controls.object.position.clone().sub(this.controls.target),
+                ratio = this.radius / r;
+            this.controls.object.position.addScaledVector(direction, 1 - ratio);
+        }
+
+        this.Mesh.geometry = new THREE.SphereGeometry(r, 32, 32);
+    }
 }

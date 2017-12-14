@@ -10,30 +10,36 @@ const { setGameLoop } = require('node-gameloop');
 
 const scene = new Scene();
 const fps = 30;
-const port = 80;
+const port = 27015;
+
+scene.onDeath(id => io.emit('player left', id));
+scene.onFeed((id, piece, delta) => io.emit('feed', { id, piece, delta }));
 
 io.on('connection', socket => {
+    console.log(`Player "${socket.id}" connected`);
 
-	let player = new Player(),
-		playersInfo = scene.getPlayersInfo();
-
-	scene.addPlayer(socket.id, player);
+	let player = new Player();
 
 	socket.emit('init', {
-		playersInfo,
-        id: socket.id,
-		thisPlayerInfo: player.getInfo()
+		playersData: {
+            thisPlayerData: player.getData(),
+		    otherPlayersData: scene.getPlayersData()
+        },
+        feedData: scene.getFeedData()
 	});
+
+    scene.addPlayer(socket.id, player);
 
 	socket.broadcast.emit('player joined', {
 	    id: socket.id,
-        playerInfo: player.getInfo()
+        playerData: player.getData()
     });
 
-	socket.on('move', force => {
+	socket.on('update', force => {
 	    player.move(force);
     });
 	socket.on('disconnect', () => {
+        console.log(`Player "${socket.id}" disconnected`);
 	    scene.removePlayer(socket.id);
 	    socket.broadcast.emit('player left', socket.id);
     });
@@ -44,9 +50,12 @@ setGameLoop(dt => {
 
 	io.emit('update', Array.from(
 		scene.players,
-        ([id, player]) => [id, {
-			position: player.body.position
-		}]
+        ([id, player]) => [
+        	id,
+			{
+				position: player.position
+			}
+		]
 	));
 
 }, 1000/fps);
