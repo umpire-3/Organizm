@@ -1,4 +1,4 @@
-# Organism
+# Organizm
 Browser game project
 
 ### Installation
