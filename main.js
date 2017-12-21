@@ -13,7 +13,7 @@ const fps = 30;
 const port = 27015;
 
 scene.onDeath(id => io.emit('player left', id));
-scene.onFeed((id, piece, delta) => io.emit('feed', { id, piece, delta }));
+scene.onFeed((id, delta, piece) => io.emit('feed', { id, delta, piece }));
 
 io.on('connection', socket => {
     console.log(`Player "${socket.id}" connected`);

@@ -28,7 +28,7 @@ class Scene {
     }
 
     addPlayer(id, player) {
-	    let res = this.players.set(id, player)
+	    let res = this.players.set(id, player);
         this.updateArray();
         return res;
     }
@@ -61,9 +61,9 @@ class Scene {
 	        let toDel = [];
 	        for (let [index, feedPiece] of this.feed.entries()) {
 	            let distance = player.position.clone().sub(feedPiece);
-	            if (distance.lengthSq() < Math.pow(player.radius, 2)) {
+	            if (distance.lengthSq() < player.radius * player.radius) {
                     toDel.push(index);
-                    this._feedEvent(id, index, player.feed());
+                    this._feedEvent(id, player.feed(), index);
                 }
             }
             for (let index of toDel) {
@@ -75,21 +75,26 @@ class Scene {
         }
     }
 
-    resolveConflict([i1, p1], [i2, p2]) {
-	    let distance = p2.position.clone().sub(p1.position),
-            dr = p1.radius - p2.radius;
-	    if (dr != 0.0 && distance.lengthSq() < Math.pow(dr, 2)) {
-	        let deadId = undefined;
-            if (dr > 0) {
-                deadId = i2;
+    resolveConflict(player_1, player_2) {
+	    let distanceSq = player_2[1].position.distanceToSquared(player_1[1].position),
+            deltaRadius = player_1[1].radius - player_2[1].radius;
+	    if (deltaRadius !== 0.0 && distanceSq <= deltaRadius * deltaRadius) {
+
+            if (deltaRadius > 0) {
+                this._kill(player_2, player_1);
             }
             else {
-                deadId = i1;
+                this._kill(player_1, player_2);
             }
-            this.removePlayer(deadId);
-            this._deathEvent(deadId)
         }
     }
+
+    _kill([toKillId, toKillPlayer], [toFeedId, toFeedPlayer]) {
+        this.removePlayer(toKillId);
+        this._deathEvent(toKillId);
+
+        this._feedEvent(toFeedId, toFeedPlayer.feed(toKillPlayer.radius));
+    };
 
     onFeed(callback) {
 	    this._feedEvent = callback;

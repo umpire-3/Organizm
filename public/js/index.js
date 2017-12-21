@@ -86,8 +86,11 @@ function initSocket() {
         }
     });
 
-    socket.on('feed', ({ id, piece, delta }) => {
-        feed.remove(piece);
+    socket.on('feed', ({ id, delta, piece }) => {
+        if (piece) {
+            feed.remove(piece);
+        }
+
         let player = players.get(id);
         if (player) {
             player.radius += delta;
@@ -146,6 +149,10 @@ function initKeyboard() {
                 direction,
                 camera.up
             ).setLength(MovementSpeed);
+    });
+
+    keyboard.on('up', Keys.VK_SPACE, () => {
+        socket.emit('update', new THREE.Vector3());
     });
 }
 function initMouseLook() {

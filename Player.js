@@ -18,13 +18,13 @@ class Player {
 
     move(force) {
         // this.body.position.addScaledVector(force, 1/this.body.mass);
-        this.body.velocity.copy(new THREE.Vector3().addScaledVector(force, 1/this.body.mass));
+        this.body.velocity = new THREE.Vector3().addScaledVector(force, 1/this.body.mass);
     }
 
-    feed() {
-        this.body.radius += 1;
-        this.body.mass *= 1.1;
-        return 1;
+    feed(x = 1) {
+        this.body.radius += x;
+        this.body.mass *= 1.0 + x/this.body.radius;
+        return x;
     }
 
     update(dt) {
