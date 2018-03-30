@@ -12,3 +12,8 @@ npm install
 ```bash
 node main.js
 ```
+
+### Controls
+- Move mouse while holding left button to look around 
+- `W` `A` `S` `D` - movement 
+- `SPACE` - hold position 
